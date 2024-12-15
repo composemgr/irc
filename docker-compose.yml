@@ -1,0 +1,31 @@
+name: irc
+services:
+  server:
+    image: linuxserver/ngircd
+    container_name: irc-server
+    hostname: irc
+    ports:
+      - '6667:6667' 
+      - '6697:6697' 
+    volumes:
+      - /var/lib/srv/${USER}/docker/linuxserver/ngircd/latest/rootfs/config/irc:/config
+    networks:
+      - irc
+
+  web:
+    image: thelounge/thelounge
+    container_name: irc-web
+    hostname: client
+    ports:
+      - '172.17.0.1:59062:9000'
+    volumes:
+      - /var/lib/srv/${USER}/docker/linuxserver/ngircd/latest/rootfs/data/irc:/var/opt/thelounge
+    depends_on:
+      - server
+    networks:
+      - irc
+
+networks:
+  irc:
+    name: irc
+    external: false
