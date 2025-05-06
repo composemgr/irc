@@ -1,0 +1,57 @@
+name: irc
+services:
+  server:
+    image: linuxserver/ngircd:latest
+    container_name: irc-server
+    hostname: irc
+    restart: always
+    pull_policy: always
+    volumes:
+      - /etc/letsencrypt/archive/domain:/tmp/certs
+      - /var/lib/srv/${USER}/docker/linuxserver/ngircd/latest/rootfs/config/irc:/config
+    ports:
+      - '6667:6667'
+      - '6697:6697'
+    networks:
+      - irc
+
+  anope:
+    image: anope/anope:latest
+    container_name: anope
+    hostname: anope
+    restart: always
+    pull_policy: always
+    environment:
+      - ANOPE_UPLINK_PORT=6667
+      - ANOPE_UPLINK_PASSWORD=password
+      - ANOPE_UPLINK_IP=${BASE_HOST_NAME:-irc}
+      - ANOPE_SERVICES_NAME=${BASE_HOST_NAME:-irc}
+      - ANOPE_SERVICES_VHOST=${BASE_HOST_NAME:-irc}
+    volumes:
+      - /var/lib/srv/${USER}/docker/linuxserver/ngircd/latest/rootfs/data/anope:/data
+    depends_on:
+      server:
+        condition: service_started
+    networks:
+      - irc
+
+  web:
+    image: thelounge/thelounge:latest
+    container_name: irc-web
+    hostname: client
+    restart: always
+    pull_policy: always
+    ports:
+      - '172.17.0.1:59062:9000'
+    volumes:
+      - /var/lib/srv/${USER}/docker/linuxserver/ngircd/latest/rootfs/data/thelounge:/var/opt/thelounge
+    depends_on:
+      server:
+        condition: service_started
+    networks:
+      - irc
+
+networks:
+  irc:
+    name: irc
+    external: false
