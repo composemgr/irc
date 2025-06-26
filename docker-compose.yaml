@@ -1,0 +1,73 @@
+# nginx proxy address - http://172.17.0.1:59062
+
+name: ngircd
+x-logging: &default-logging
+  options:
+    max-size: '5m'
+    max-file: '1'
+  driver: json-file
+
+services:
+  app:
+    image: thelounge/thelounge:latest
+    container_name: ngircd-app
+    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      - TZ=${TZ:-America/New_York}
+    ports:
+      - '172.17.0.1:59062:9000'
+    volumes:
+      - './rootfs/data/ngircd:/var/opt/thelounge'
+    depends_on:
+      server:
+        condition: service_started
+    networks:
+      - irc
+
+  server:
+    image: linuxserver/ngircd:latest
+    container_name: ngircd-server
+    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      - TZ=${TZ:-America/New_York}
+    volumes:
+      - './rootfs/config/ngircd:/config'
+      - '/etc/letsencrypt/archive/domain:/tmp/certs'
+    ports:
+      - '6667:6667'
+      - '6697:6697'
+    networks:
+      - irc
+
+  anope:
+    image: anope/anope:latest
+    container_name: ngircd-anope
+    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      - TZ=${TZ:-America/New_York}
+      - ANOPE_UPLINK_PORT=6667
+      - ANOPE_UPLINK_IP=ngircd-server
+      - ANOPE_UPLINK_PASSWORD=password
+      - ANOPE_SERVICES_NAME=${BASE_HOST_NAME:-$HOSTNAME}
+      - ANOPE_SERVICES_VHOST=${BASE_HOST_NAME:-$HOSTNAME}
+    volumes:
+      - './rootfs/data/anope:/data'
+    depends_on:
+      server:
+        condition: service_started
+    networks:
+      - irc
+
+networks:
+  irc:
+    name: irc
+    external: false
