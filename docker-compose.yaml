@@ -20,7 +20,7 @@ services:
     ports:
       - '172.17.0.1:59062:9000'
     volumes:
-      - './rootfs/data/irc:/var/opt/thelounge'
+      - './volumes/data/irc:/var/opt/thelounge'
     depends_on:
       server:
         condition: service_started
@@ -37,7 +37,7 @@ services:
     environment:
       TZ: ${TZ:-America/New_York}
     volumes:
-      - './rootfs/config/server:/config'
+      - './volumes/config/server:/config'
       - '/etc/letsencrypt/archive/domain:/tmp/certs'
     ports:
       - '6667:6667'
@@ -60,7 +60,7 @@ services:
       ANOPE_SERVICES_NAME: ${BASE_HOST_NAME:-$HOSTNAME}
       ANOPE_SERVICES_VHOST: ${BASE_HOST_NAME:-$HOSTNAME}
     volumes:
-      - './rootfs/data/anope:/data'
+      - './volumes/data/anope:/data'
     depends_on:
       server:
         condition: service_started
