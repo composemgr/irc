@@ -47,9 +47,9 @@ See `docker-compose.yaml` for complete list of configurable options.
 
 ## 📂 Volumes
 
-- `./rootfs/data/irc` - Data storage
-- `./rootfs/config/server` - Data storage
-- `./rootfs/data/anope` - Data storage
+- `./volumes/data/irc` - Data storage
+- `./volumes/config/server` - Data storage
+- `./volumes/data/anope` - Data storage
 
 ## 🔍 Logging
 
