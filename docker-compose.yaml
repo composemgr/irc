@@ -17,6 +17,8 @@ services:
     logging: *default-logging
     environment:
       TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: irc-app
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
     ports:
       - '172.17.0.1:59062:9000'
     volumes:
@@ -26,6 +28,24 @@ services:
         condition: service_started
     networks:
       - irc
+      - proxy
+      - cloudflare
+    labels:
+      - 'traefik.enable=true'
+      - 'cloudflare.enable=true'
+      - 'traefik.docker.network=proxy'
+      - 'cloudflare.service=http://irc-app:9000'
+      - 'cloudflare.hostname=irc.${CLOUDFLARE_ZONE_NAME:-}'
+      - 'traefik.http.routers.irc-app.entrypoints=http'
+      - 'traefik.http.routers.irc-app-secure.tls=true'
+      - 'traefik.http.routers.irc-app.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.middlewares.irc-app-https-redirect.redirectscheme.scheme=https'
+      - 'traefik.http.routers.irc-app.middlewares=irc-app-https-redirect'
+      - 'traefik.http.routers.irc-app-secure.entrypoints=https'
+      - 'traefik.http.routers.irc-app-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.routers.irc-app-secure.tls.certresolver=cloudflare'
+      - 'traefik.http.routers.irc-app-secure.service=irc-app'
+      - 'traefik.http.services.irc-app.loadbalancer.server.port=9000'
 
   server:
     image: linuxserver/ngircd:latest
@@ -36,6 +56,8 @@ services:
     logging: *default-logging
     environment:
       TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: irc-server
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
     volumes:
       - './volumes/config/server:/config'
       - '/etc/letsencrypt/archive/domain:/tmp/certs'
@@ -44,6 +66,24 @@ services:
       - '6697:6697'
     networks:
       - irc
+      - proxy
+      - cloudflare
+    labels:
+      - 'traefik.enable=true'
+      - 'cloudflare.enable=true'
+      - 'traefik.docker.network=proxy'
+      - 'cloudflare.service=http://irc-server:6667'
+      - 'cloudflare.hostname=irc.${CLOUDFLARE_ZONE_NAME:-}'
+      - 'traefik.http.routers.irc-server.entrypoints=http'
+      - 'traefik.http.routers.irc-server-secure.tls=true'
+      - 'traefik.http.routers.irc-server.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.middlewares.irc-server-https-redirect.redirectscheme.scheme=https'
+      - 'traefik.http.routers.irc-server.middlewares=irc-server-https-redirect'
+      - 'traefik.http.routers.irc-server-secure.entrypoints=https'
+      - 'traefik.http.routers.irc-server-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.routers.irc-server-secure.tls.certresolver=cloudflare'
+      - 'traefik.http.routers.irc-server-secure.service=irc-server'
+      - 'traefik.http.services.irc-server.loadbalancer.server.port=6667'
 
   anope:
     image: anope/anope:latest
@@ -59,6 +99,7 @@ services:
       ANOPE_UPLINK_PASSWORD: ${APP_SECRET_KEY:-changeme_uplink_password}
       ANOPE_SERVICES_NAME: ${BASE_HOST_NAME:-$HOSTNAME}
       ANOPE_SERVICES_VHOST: ${BASE_HOST_NAME:-$HOSTNAME}
+      CONTAINER_NAME: irc-anope
     volumes:
       - './volumes/data/anope:/data'
     depends_on:
@@ -71,3 +112,7 @@ networks:
   irc:
     name: irc
     external: false
+  proxy:
+    external: true
+  cloudflare:
+    external: true
